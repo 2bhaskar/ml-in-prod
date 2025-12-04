@@ -1,0 +1,10 @@
+services:
+
+  image-classification:
+    image: image_classification:0.0.1
+    environment:
+      APP_CONFIG_PATH: config/app_config.yaml
+      LOG_CONFIG_PATH: config/log_config.ini
+    ports:
+      - 9000:9000
+    command: python -m src

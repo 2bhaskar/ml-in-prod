@@ -1,0 +1,55 @@
+version: "3.7"
+services:
+  
+  s3:
+    image: minio/minio
+    container_name: s3
+    volumes:
+        - ./buckets:/data:consistent
+    expose:
+        - ${MINIO_PORT}
+    ports:
+        - ${MINIO_PORT}:${MINIO_PORT}
+    environment:
+        - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+        - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+    command: minio server /data
+    networks: 
+        - mlflow
+    healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+        interval: 30s
+        timeout: 20s
+        retries: 3
+
+  db:
+    image: mysql
+    container_name: db
+    command: --innodb_use_native_aio=0
+    networks: 
+        - mlflow
+    environment:
+        - MYSQL_DATABASE=${MYSQL_DATABASE}
+        - MYSQL_USER=${MYSQL_USER}
+        - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+        - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+
+  mlflow:
+    image: ml_flow_server:latest
+    ports:
+        - ${MLFLOW_PORT}:${MLFLOW_PORT}
+    networks: 
+        - mlflow
+    environment:
+        - MLFLOW_S3_ENDPOINT_URL=http://s3:${MINIO_PORT}
+        - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
+        - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY}
+        - ARTIFACT_ROOT=s3://${MINIO_BUCKET_NAME}/
+        - BACKEND_URI=mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE}
+    command: mlflow server --backend-store-uri ${BACKEND_URI} --default-artifact-root ${ARTIFACT_ROOT} --host 0.0.0.0
+    depends_on: 
+        - db
+    
+networks:
+    mlflow:
+      driver: bridge

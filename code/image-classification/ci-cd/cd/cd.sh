@@ -1,0 +1,1 @@
+docker compose -f ci-cd/cd/docker_compose_image_classification.yaml up -d

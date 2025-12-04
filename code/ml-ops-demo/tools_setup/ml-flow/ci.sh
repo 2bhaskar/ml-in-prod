@@ -1,0 +1,1 @@
+sudo docker build -f Dockerfile -t ml_flow_server:latest .
